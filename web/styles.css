@@ -5,4 +5,5 @@
 .bike-symbol{width:22px;height:22px;flex:none;display:block;color:var(--accent)}
 .social-icon{width:22px;height:22px;flex:none;display:block;color:#fff;background:none;border-radius:0;overflow:visible}
 .contact-icon{width:19px;height:19px;justify-self:center;color:var(--accent)}
+.footer-bike-icon{width:18px;height:18px;color:var(--accent)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

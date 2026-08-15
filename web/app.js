@@ -122,7 +122,7 @@
     const background = backgroundImage ? `url('${backgroundImage}')` : (profile.gradient || "linear-gradient(145deg,#090b10,#162b35,#933f23)");
     document.title = `Digital Rider Card | ${profile.reading || profile.name || "Rider"}`;
     const socials = (profile.socials || []).map((social) => `<a href="${safeUrl(social.url)}" target="_blank" rel="noopener noreferrer">${window.DRC_ICON(social.kind === "minkara" ? "motorcycle" : social.kind, "social-icon")}<span><small>${escapeHtml(socialLabels[social.kind] || social.kind)}</small>${escapeHtml(social.handle)}</span></a>`).join("");
-    const websites = (profile.websites || []).map((site) => `<a href="${safeUrl(site.url)}" target="_blank" rel="noopener noreferrer"><span class="link-icon">↗</span><span><small>WEB ADDRESS</small>${escapeHtml(site.label)}</span><b>›</b></a>`).join("");
+    const websites = (profile.websites || []).map((site) => `<a href="${safeUrl(site.url)}" target="_blank" rel="noopener noreferrer">${window.DRC_ICON("globe", "contact-icon")}<span><small>WEB ADDRESS</small>${escapeHtml(site.label)}</span><b>›</b></a>`).join("");
     const phoneHref = String(profile.phone || "").replace(/[^+\d]/g, "");
     const contacts = [
       profile.phone ? `<a href="${safeUrl(`tel:${phoneHref}`)}">${window.DRC_ICON("phone", "contact-icon")}<span><small>PHONE</small>${escapeHtml(profile.phone)}</span><b>›</b></a>` : "",
@@ -130,12 +130,12 @@
     ].join("");
     app.innerHTML = `<div class="profile-page" style="--accent:${accent};background-image:${background}"><div class="ambient"></div><article class="card-shell">
       <header class="hero" style="${heroImage ? `background-image:url('${heroImage}')` : ""}"><div class="hero-shade"></div><button class="share-button" id="share" aria-label="共有">↗</button><div class="identity">${avatarImage ? `<img class="avatar" src="${avatarImage}" alt="${escapeHtml(profile.name)}">` : `<div class="avatar fallback">${escapeHtml((profile.name || "R").slice(0,1))}</div>`}<div><p class="eyebrow">${escapeHtml(profile.tagline || "DIGITAL RIDER CARD")}</p><h1>${escapeHtml(profile.name)}</h1>${profile.reading ? `<p class="reading">${escapeHtml(profile.reading)}</p>` : ""}</div></div></header>
-      <div class="content"><section class="profile-summary"><div class="summary-copy"><p class="tagline">${escapeHtml(profile.tagline || "RIDE. CONNECT. CREATE.")}</p><div class="occupation">${window.DRC_ICON("motorcycle", "bike-symbol")}<div>${profile.organization ? `<strong>${escapeHtml(profile.organization)}</strong>` : ""}${profile.role ? `<span>${escapeHtml(profile.role)}</span>` : ""}${profile.currentBike ? `<span>${escapeHtml(profile.currentBike)}</span>` : ""}</div></div></div>${bikeImage ? `<img class="bike-photo" src="${bikeImage}" alt="愛車">` : ""}</section>
+      <div class="content"><section class="profile-summary"><div class="summary-copy"><p class="tagline">DIGITAL RIDER CARD</p><div class="occupation">${window.DRC_ICON("motorcycle", "bike-symbol")}<div>${profile.organization ? `<strong>${escapeHtml(profile.organization)}</strong>` : ""}${profile.role ? `<span>${escapeHtml(profile.role)}</span>` : ""}${profile.currentBike ? `<span>${escapeHtml(profile.currentBike)}</span>` : ""}</div></div></div>${bikeImage ? `<img class="bike-photo" src="${bikeImage}" alt="愛車">` : ""}</section>
       ${profile.message ? `<p class="personal-message">${lines(profile.message)}</p>` : ""}${profile.pastBikes || profile.rallyHistory ? `<div class="ride-history">${profile.pastBikes ? `<p><small>PAST BIKES</small><span>${lines(profile.pastBikes)}</span></p>` : ""}${profile.rallyHistory ? `<p><small>TOURING RALLY</small><span>${lines(profile.rallyHistory)}</span></p>` : ""}</div>` : ""}
       <button class="save-button" id="vcard"><span>＋</span><span>連絡先に追加</span><small>vCard</small></button>
       ${contacts || websites ? `<section class="link-section"><div class="section-heading"><span>01</span><h2>CONTACT</h2></div><div class="link-list">${contacts}${websites}</div></section>` : ""}
-      ${socials ? `<section class="link-section"><div class="section-heading"><span>02</span><h2>SOCIAL</h2></div><div class="social-grid">${socials}</div></section>` : ""}
-      <footer><span>◆</span> DIGITAL RIDER CARD</footer></div></article></div>`;
+      ${socials ? `<section class="link-section"><div class="section-heading"><h2>FOLLOW THE RIDE</h2></div><div class="social-grid">${socials}</div></section>` : ""}
+      <footer>${window.DRC_ICON("motorcycle", "footer-bike-icon")}<span>Built for people who live to ride.</span></footer></div></article></div>`;
     document.getElementById("share")?.addEventListener("click", shareCard);
     document.getElementById("vcard")?.addEventListener("click", () => downloadVCard(profile));
   }
