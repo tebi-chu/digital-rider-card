@@ -134,7 +134,7 @@
       ${profile.message ? `<p class="personal-message">${lines(profile.message)}</p>` : ""}${profile.pastBikes || profile.rallyHistory ? `<div class="ride-history">${profile.pastBikes ? `<p><small>PAST BIKES</small><span>${lines(profile.pastBikes)}</span></p>` : ""}${profile.rallyHistory ? `<p><small>TOURING RALLY</small><span>${lines(profile.rallyHistory)}</span></p>` : ""}</div>` : ""}
       <button class="save-button" id="vcard"><span>＋</span><span>連絡先に追加</span><small>vCard</small></button>
       ${contacts || websites ? `<section class="link-section"><div class="section-heading"><span>01</span><h2>CONTACT</h2></div><div class="link-list">${contacts}${websites}</div></section>` : ""}
-      ${socials ? `<section class="link-section"><div class="section-heading"><h2>FOLLOW THE RIDE</h2></div><div class="social-grid">${socials}</div></section>` : ""}
+      ${socials ? `<section class="link-section"><div class="section-heading"><span>02</span><h2>FOLLOW THE RIDE</h2></div><div class="social-grid">${socials}</div></section>` : ""}
       <footer>${window.DRC_ICON("motorcycle", "footer-bike-icon")}<span>Built for people who live to ride.</span></footer></div></article></div>`;
     document.getElementById("share")?.addEventListener("click", shareCard);
     document.getElementById("vcard")?.addEventListener("click", () => downloadVCard(profile));
