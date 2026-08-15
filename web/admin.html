@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Digital Rider Card 管理画面</title>
+    <script src="./config.js"></script>
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #111; color: #fff; font: 16px/1.7 system-ui, sans-serif; }
+      main { width: min(520px, calc(100% - 40px)); text-align: center; }
+      a { display: inline-block; margin-top: 16px; padding: 12px 22px; border-radius: 999px; background: #e6a900; color: #111; font-weight: 700; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>管理者専用画面へ移動します。</p>
+      <a id="admin-link" href="#">管理画面を開く</a>
+    </main>
+    <script>
+      const url = window.DIGITAL_CARD_CONFIG.adminUrl;
+      const link = document.getElementById("admin-link");
+      link.href = url;
+      if (url) window.location.replace(url);
+    </script>
+  </body>
+</html>

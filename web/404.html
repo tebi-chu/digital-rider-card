@@ -1,0 +1,6 @@
+<!doctype html><html lang="ja"><head><meta charset="UTF-8"><meta name="robots" content="noindex"><title>Digital Rider Card</title></head><body><script>
+  const base = "/digital-rider-card/";
+  const parts = location.pathname.split("/").filter(Boolean);
+  const id = parts.length > 1 ? parts[parts.length - 1] : "";
+  location.replace(base + (id ? "?id=" + encodeURIComponent(id) : ""));
+</script></body></html>
