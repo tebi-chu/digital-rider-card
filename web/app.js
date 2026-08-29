@@ -6,6 +6,8 @@
   const params = new URLSearchParams(location.search);
   const profileId = sanitizeId(params.get("id") || location.hash.slice(1) || config.defaultProfileId || "chutatsu");
   const tokenKey = `digital-card-token:${profileId}`;
+  const profileCacheKey = `digital-card-profile:${profileId}`;
+  const PROFILE_CACHE_MS = 24 * 60 * 60 * 1000;
   const socialLabels = { instagram:"Instagram", threads:"Threads", x:"X", youtube:"YouTube", tiktok:"TikTok", minkara:"みんカラ", facebook:"Facebook", line:"LINE" };
 
   function sanitizeId(value) {
@@ -65,6 +67,21 @@
 
   function saveToken(token, expiresAt) {
     localStorage.setItem(tokenKey, JSON.stringify({ token, expiresAt }));
+  }
+
+  function readCachedProfile() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(profileCacheKey) || "null");
+      if (!saved?.profile || saved.cachedAt + PROFILE_CACHE_MS <= Date.now()) {
+        localStorage.removeItem(profileCacheKey);
+        return null;
+      }
+      return saved.profile;
+    } catch { return null; }
+  }
+
+  function saveCachedProfile(profile) {
+    try { localStorage.setItem(profileCacheKey, JSON.stringify({ profile, cachedAt: Date.now() })); } catch {}
   }
 
   function renderError(message) {
@@ -159,21 +176,35 @@
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${profileId}.vcf`; link.click(); URL.revokeObjectURL(link.href);
   }
 
-  async function loadProfile(token = "") {
+  async function loadProfile(token = "", cacheProfile = false) {
     const result = await api("getProfile", { token });
+    if (cacheProfile) saveCachedProfile(result.profile);
     renderCard(result.profile);
   }
 
   async function start() {
-    app.innerHTML = `<section class="state-card"><span class="loader" aria-hidden="true"></span><p>DigitalCardを読み込んでいます…</p></section>`;
+    const cachedProfile = readCachedProfile();
+    if (cachedProfile) renderCard(cachedProfile);
+    else app.innerHTML = `<section class="state-card"><span class="loader" aria-hidden="true"></span><p>DigitalCardを読み込んでいます…</p></section>`;
     try {
+      const token = readToken();
+      if (token) {
+        try { return await loadProfile(token); }
+        catch { localStorage.removeItem(tokenKey); }
+      }
       const status = await api("status");
       if (!status.exists) throw new Error("指定されたDigitalCardが見つかりません。");
-      if (!status.pinRequired) return await loadProfile();
-      const token = readToken();
-      if (token) { try { return await loadProfile(token); } catch { localStorage.removeItem(tokenKey); } }
+      if (!status.pinRequired && status.profile) {
+        saveCachedProfile(status.profile);
+        return renderCard(status.profile);
+      }
+      if (!status.pinRequired) return await loadProfile("", true);
+      localStorage.removeItem(profileCacheKey);
       renderPin();
-    } catch (err) { renderError(err.message); }
+    } catch (err) {
+      // キャッシュ表示済みなら、一時的なAPI障害で画面をエラーに戻さない。
+      if (!cachedProfile) renderError(err.message);
+    }
   }
 
   start();

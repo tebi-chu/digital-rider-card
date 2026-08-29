@@ -128,6 +128,24 @@ function getProfile_(slug) {
   return rowProfile_(sheet.getRange(row, 1, 1, PROFILE_HEADERS.length).getValues()[0]);
 }
 
+function publicProfileCacheKey_(slug) { return "public-profile:" + safeSlug_(slug); }
+
+function getCachedProfile_(slug) {
+  const safe = safeSlug_(slug);
+  const cache = CacheService.getScriptCache();
+  const key = publicProfileCacheKey_(safe);
+  const cached = cache.get(key);
+  if (cached) return parseJson_(cached, null);
+  const profile = getProfile_(safe);
+  if (profile) cache.put(key, JSON.stringify(profile), 300);
+  return profile;
+}
+
+function clearProfileCache_(slug) {
+  const safe = safeSlug_(slug);
+  if (safe) CacheService.getScriptCache().remove(publicProfileCacheKey_(safe));
+}
+
 function pinRequired_(slug) { return findRow_(securitySheet_(), safeSlug_(slug), 1) > 0; }
 
 function ensureMigrationLockdown_() {
@@ -156,13 +174,15 @@ function ensureMigrationLockdown_() {
 function publicStatus_(body) {
   ensureMigrationLockdown_();
   const slug = safeSlug_(body.slug);
-  return json_({ ok: true, exists: Boolean(getProfile_(slug)), pinRequired: pinRequired_(slug) });
+  const profile = getCachedProfile_(slug);
+  const pinRequired = profile ? pinRequired_(slug) : false;
+  return json_({ ok: true, exists: Boolean(profile), pinRequired: pinRequired, profile: pinRequired ? undefined : profile });
 }
 
 function publicGetProfile_(body) {
   ensureMigrationLockdown_();
   const slug = safeSlug_(body.slug);
-  const profile = getProfile_(slug);
+  const profile = getCachedProfile_(slug);
   if (!profile) return json_({ ok: false, error: "指定されたDigitalCardが見つかりません。" });
   if (pinRequired_(slug) && !validSession_(slug, text_(body.token, 300))) return json_({ ok: false, error: "PIN認証が必要です。", code: "PIN_REQUIRED" });
   return json_({ ok: true, profile: profile });
@@ -279,12 +299,14 @@ function upsertProfile_(profile, previousSlug) {
   const row = findRow_(sheet, profile.slug, 1);
   if (row > 0) sheet.getRange(row, 1, 1, PROFILE_HEADERS.length).setValues([profileRow_(profile)]);
   else sheet.appendRow(profileRow_(profile));
+  clearProfileCache_(profile.slug);
+  if (previousSlug && previousSlug !== profile.slug) clearProfileCache_(previousSlug);
 }
 
 function adminDeleteProfile(slug) {
   requireAdmin_();
   const safe = safeSlug_(slug); const sheet = profileSheet_(); const row = findRow_(sheet, safe, 1);
-  if (row > 0) sheet.deleteRow(row); removePin_(safe); return true;
+  if (row > 0) sheet.deleteRow(row); removePin_(safe); clearProfileCache_(safe); return true;
 }
 
 function setPin_(slug, pin) {
