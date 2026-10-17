@@ -177,7 +177,7 @@
     if (!response.ok) throw new Error("連絡先画像を取得できませんでした。");
     const bytes = new Uint8Array(await response.arrayBuffer());
     const mime = String(response.headers.get("Content-Type") || "").split(";")[0].toLowerCase();
-    let type = ({ "image/jpeg":"JPEG", "image/jpg":"JPEG", "image/png":"PNG", "image/gif":"GIF" })[mime];
+    let type = vCardImageType(mime);
     if (!type && bytes[0] === 0xff && bytes[1] === 0xd8) type = "JPEG";
     if (!type && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) type = "PNG";
     if (!type && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) type = "GIF";
@@ -189,9 +189,18 @@
     return { type, base64: btoa(binary) };
   }
 
+  function vCardImageType(mime) {
+    return ({ "image/jpeg":"JPEG", "image/jpg":"JPEG", "image/png":"PNG", "image/gif":"GIF" })[String(mime || "").split(";")[0].toLowerCase()] || "";
+  }
+
   async function contactPhoto(profile) {
     const avatar = imageUrl(profile.avatarUrl);
     if (avatar) {
+      try {
+        const result = await api("getContactPhoto", { token: readToken() });
+        const type = vCardImageType(result.photo?.mimeType);
+        if (type && result.photo?.base64) return { type, base64: result.photo.base64 };
+      } catch {}
       try { return await imageForVCard(avatar); }
       catch { return { uri: avatar }; }
     }
@@ -207,7 +216,8 @@
     if (profile.phone) lines.push(`TEL;TYPE=CELL:${v(profile.phone)}`);
     if (profile.email) lines.push(`EMAIL:${v(profile.email)}`);
     if (profile.websites?.[0]?.url) lines.push(`URL:${v(profile.websites[0].url)}`);
-    const socialTypes = { instagram:"instagram", threads:"threads", x:"twitter", youtube:"youtube", tiktok:"tiktok", minkara:"minkara", facebook:"facebook", line:"line" };
+    // iPhoneが標準認識するサービス以外はother＋個別ラベルでカスタムSNSとして取り込む。
+    const socialTypes = { instagram:"other", threads:"other", x:"twitter", youtube:"other", tiktok:"other", minkara:"other", facebook:"facebook", line:"other" };
     (profile.socials || []).forEach((social, index) => {
       const type = socialTypes[social.kind];
       const url = safeUrl(social.url);

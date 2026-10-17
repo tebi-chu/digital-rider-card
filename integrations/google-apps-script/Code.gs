@@ -26,6 +26,7 @@ function doPost(e) {
     if (body.action === "status") return publicStatus_(body);
     if (body.action === "verifyPin") return publicVerifyPin_(body);
     if (body.action === "getProfile") return publicGetProfile_(body);
+    if (body.action === "getContactPhoto") return publicGetContactPhoto_(body);
     return json_({ ok: false, error: "invalid_request" });
   } catch (error) {
     return json_({ ok: false, error: String(error && error.message || error) });
@@ -186,6 +187,27 @@ function publicGetProfile_(body) {
   if (!profile) return json_({ ok: false, error: "指定されたDigitalCardが見つかりません。" });
   if (pinRequired_(slug) && !validSession_(slug, text_(body.token, 300))) return json_({ ok: false, error: "PIN認証が必要です。", code: "PIN_REQUIRED" });
   return json_({ ok: true, profile: profile });
+}
+
+function driveFileId_(value) {
+  const text = String(value || "");
+  const pathMatch = text.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  const queryMatch = text.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  return pathMatch ? pathMatch[1] : queryMatch ? queryMatch[1] : "";
+}
+
+function publicGetContactPhoto_(body) {
+  ensureMigrationLockdown_();
+  const slug = safeSlug_(body.slug);
+  const profile = getCachedProfile_(slug);
+  if (!profile) return json_({ ok: false, error: "指定されたDigitalCardが見つかりません。" });
+  if (pinRequired_(slug) && !validSession_(slug, text_(body.token, 300))) return json_({ ok: false, error: "PIN認証が必要です。", code: "PIN_REQUIRED" });
+  const fileId = driveFileId_(profile.avatarUrl);
+  if (!fileId) return json_({ ok: false, error: "プロフィール画像が設定されていません。" });
+  const blob = DriveApp.getFileById(fileId).getBlob();
+  const mimeType = String(blob.getContentType() || "").toLowerCase();
+  if (["image/jpeg", "image/jpg", "image/png", "image/gif"].indexOf(mimeType) < 0) return json_({ ok: false, error: "電話帳が対応していない画像形式です。" });
+  return json_({ ok: true, photo: { mimeType: mimeType, base64: Utilities.base64Encode(blob.getBytes()) } });
 }
 
 function publicVerifyPin_(body) {
