@@ -216,15 +216,16 @@
     if (profile.phone) lines.push(`TEL;TYPE=CELL:${v(profile.phone)}`);
     if (profile.email) lines.push(`EMAIL:${v(profile.email)}`);
     if (profile.websites?.[0]?.url) lines.push(`URL:${v(profile.websites[0].url)}`);
-    // iPhoneが標準認識するサービス以外はother＋個別ラベルでカスタムSNSとして取り込む。
-    const socialTypes = { instagram:"other", threads:"other", x:"twitter", youtube:"other", tiktok:"other", minkara:"other", facebook:"facebook", line:"other" };
+    // TYPEにサービス名を設定し、iPhoneのソーシャルプロフィール欄で各SNS名を表示する。
+    // XはiOSの定義済みサービス名であるTwitterを使用する。
+    const socialTypes = { instagram:"Instagram", threads:"Threads", x:"Twitter", youtube:"YouTube", tiktok:"TikTok", minkara:"みんカラ", facebook:"Facebook", line:"LINE" };
     (profile.socials || []).forEach((social, index) => {
       const type = socialTypes[social.kind];
       const url = safeUrl(social.url);
       if (!type || url === "#") return;
       const group = `item${index + 1}`;
       // X-USERが電話帳上のアカウント名、X-ABLabelがiPhone上のサービス名になる。
-      lines.push(foldVCardLine(`${group}.X-SOCIALPROFILE;TYPE=${type};X-USER="${vParam(social.handle)}":${v(url)}`));
+      lines.push(foldVCardLine(`${group}.X-SOCIALPROFILE;TYPE="${vParam(type)}";X-USER="${vParam(social.handle)}":${v(url)}`));
       lines.push(`${group}.X-ABLabel:${v(socialLabels[social.kind] || social.kind)}`);
     });
     // プロフィール画像を優先し、未設定・取得失敗時はサイト共通アイコンを直接埋め込む。
