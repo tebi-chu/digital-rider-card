@@ -164,7 +164,25 @@
   }
 
   function v(value) { return String(value || "").replace(/([,;\\])/g, "\\$1").replace(/\r?\n/g, "\\n"); }
-  function downloadVCard(profile) {
+  function foldVCardLine(line) {
+    if (line.length <= 75) return line;
+    const parts = [line.slice(0, 75)];
+    for (let offset = 75; offset < line.length; offset += 74) parts.push(` ${line.slice(offset, offset + 74)}`);
+    return parts.join("\r\n");
+  }
+
+  async function cardIconBase64() {
+    const response = await fetch(new URL("./phone-icon.png", location.href));
+    if (!response.ok) throw new Error("カードアイコンを取得できませんでした。");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    let binary = "";
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+      binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+    }
+    return btoa(binary);
+  }
+
+  async function downloadVCard(profile) {
     const name = v(profile.name);
     // FNだけでは氏名を取り込まない端末があるため、構造化氏名のNにも基本情報の名前を設定する。
     const lines = ["BEGIN:VCARD", "VERSION:3.0", `N:${name};;;;`, `FN:${name}`];
@@ -173,9 +191,12 @@
     if (profile.phone) lines.push(`TEL;TYPE=CELL:${v(profile.phone)}`);
     if (profile.email) lines.push(`EMAIL:${v(profile.email)}`);
     if (profile.websites?.[0]?.url) lines.push(`URL:${v(profile.websites[0].url)}`);
+    // URL参照では取り込まない端末があるため、電話帳用アイコンをvCardへ直接埋め込む。
+    try { lines.push(foldVCardLine(`PHOTO;ENCODING=b;TYPE=PNG:${await cardIconBase64()}`)); } catch {}
     lines.push("END:VCARD");
     const blob = new Blob([lines.join("\r\n")], { type:"text/vcard;charset=utf-8" });
-    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${profileId}.vcf`; link.click(); URL.revokeObjectURL(link.href);
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${profileId}.vcf`; link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   }
 
   async function loadProfile(token = "", cacheProfile = false) {
