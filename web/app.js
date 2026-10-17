@@ -224,8 +224,10 @@
       const url = safeUrl(social.url);
       if (!type || url === "#") return;
       const group = `item${index + 1}`;
-      // X-USERが電話帳上のアカウント名、X-ABLabelがiPhone上のサービス名になる。
-      lines.push(foldVCardLine(`${group}.X-SOCIALPROFILE;TYPE=${type};X-USER="${vParam(social.handle)}":${v(url)}`));
+      // Apple Contactsの書き出し形式に合わせ、URLではなくx-apple:ユーザー名を値にする。
+      // URLを値にすると、iPhoneがドメイン由来のカスタムサービス（Instagram.com等）として扱う場合がある。
+      const appleUser = encodeURIComponent(String(social.handle || ""));
+      lines.push(foldVCardLine(`${group}.X-SOCIALPROFILE;TYPE=${type};X-USER="${vParam(social.handle)}":x-apple:${appleUser}`));
       lines.push(`${group}.X-ABLabel:${v(socialLabels[social.kind] || social.kind)}`);
     });
     // プロフィール画像を優先し、未設定・取得失敗時はサイト共通アイコンを直接埋め込む。
