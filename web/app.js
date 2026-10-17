@@ -172,15 +172,30 @@
     return parts.join("\r\n");
   }
 
-  async function cardIconBase64() {
-    const response = await fetch(new URL("./phone-icon.png", location.href));
-    if (!response.ok) throw new Error("カードアイコンを取得できませんでした。");
+  async function imageForVCard(source) {
+    const response = await fetch(source);
+    if (!response.ok) throw new Error("連絡先画像を取得できませんでした。");
     const bytes = new Uint8Array(await response.arrayBuffer());
+    const mime = String(response.headers.get("Content-Type") || "").split(";")[0].toLowerCase();
+    let type = ({ "image/jpeg":"JPEG", "image/jpg":"JPEG", "image/png":"PNG", "image/gif":"GIF" })[mime];
+    if (!type && bytes[0] === 0xff && bytes[1] === 0xd8) type = "JPEG";
+    if (!type && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) type = "PNG";
+    if (!type && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) type = "GIF";
+    if (!type) throw new Error("電話帳が対応していない画像形式です。");
     let binary = "";
     for (let offset = 0; offset < bytes.length; offset += 0x8000) {
       binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
     }
-    return btoa(binary);
+    return { type, base64: btoa(binary) };
+  }
+
+  async function contactPhoto(profile) {
+    const avatar = imageUrl(profile.avatarUrl);
+    if (avatar) {
+      try { return await imageForVCard(avatar); }
+      catch { return { uri: avatar }; }
+    }
+    return imageForVCard(new URL("./phone-icon.png", location.href));
   }
 
   async function downloadVCard(profile) {
@@ -202,8 +217,14 @@
       lines.push(foldVCardLine(`${group}.X-SOCIALPROFILE;TYPE=${type};X-USER="${vParam(social.handle)}":${v(url)}`));
       lines.push(`${group}.X-ABLabel:${v(socialLabels[social.kind] || social.kind)}`);
     });
-    // URL参照では取り込まない端末があるため、電話帳用アイコンをvCardへ直接埋め込む。
-    try { lines.push(foldVCardLine(`PHOTO;ENCODING=b;TYPE=PNG:${await cardIconBase64()}`)); } catch {}
+    // プロフィール画像を優先し、未設定・取得失敗時はサイト共通アイコンを直接埋め込む。
+    try {
+      const photo = await contactPhoto(profile);
+      const photoLine = photo.uri
+        ? `PHOTO;VALUE=URI:${v(photo.uri)}`
+        : `PHOTO;ENCODING=b;TYPE=${photo.type}:${photo.base64}`;
+      lines.push(foldVCardLine(photoLine));
+    } catch {}
     lines.push("END:VCARD");
     const blob = new Blob([lines.join("\r\n")], { type:"text/vcard;charset=utf-8" });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${profileId}.vcf`; link.click();
