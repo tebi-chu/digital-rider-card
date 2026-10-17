@@ -164,6 +164,7 @@
   }
 
   function v(value) { return String(value || "").replace(/([,;\\])/g, "\\$1").replace(/\r?\n/g, "\\n"); }
+  function vParam(value) { return String(value || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]/g, " "); }
   function foldVCardLine(line) {
     if (line.length <= 75) return line;
     const parts = [line.slice(0, 75)];
@@ -191,6 +192,16 @@
     if (profile.phone) lines.push(`TEL;TYPE=CELL:${v(profile.phone)}`);
     if (profile.email) lines.push(`EMAIL:${v(profile.email)}`);
     if (profile.websites?.[0]?.url) lines.push(`URL:${v(profile.websites[0].url)}`);
+    const socialTypes = { instagram:"instagram", threads:"threads", x:"twitter", youtube:"youtube", tiktok:"tiktok", minkara:"minkara", facebook:"facebook", line:"line" };
+    (profile.socials || []).forEach((social, index) => {
+      const type = socialTypes[social.kind];
+      const url = safeUrl(social.url);
+      if (!type || url === "#") return;
+      const group = `item${index + 1}`;
+      // X-USERが電話帳上のアカウント名、X-ABLabelがiPhone上のサービス名になる。
+      lines.push(foldVCardLine(`${group}.X-SOCIALPROFILE;TYPE=${type};X-USER="${vParam(social.handle)}":${v(url)}`));
+      lines.push(`${group}.X-ABLabel:${v(socialLabels[social.kind] || social.kind)}`);
+    });
     // URL参照では取り込まない端末があるため、電話帳用アイコンをvCardへ直接埋め込む。
     try { lines.push(foldVCardLine(`PHOTO;ENCODING=b;TYPE=PNG:${await cardIconBase64()}`)); } catch {}
     lines.push("END:VCARD");
