@@ -165,7 +165,9 @@
 
   function v(value) { return String(value || "").replace(/([,;\\])/g, "\\$1").replace(/\r?\n/g, "\\n"); }
   function downloadVCard(profile) {
-    const lines = ["BEGIN:VCARD", "VERSION:3.0", `FN:${v(profile.name)}`];
+    const name = v(profile.name);
+    // FNだけでは氏名を取り込まない端末があるため、構造化氏名のNにも基本情報の名前を設定する。
+    const lines = ["BEGIN:VCARD", "VERSION:3.0", `N:${name};;;;`, `FN:${name}`];
     if (profile.organization) lines.push(`ORG:${v(profile.organization)}`);
     if (profile.role) lines.push(`TITLE:${v(profile.role)}`);
     if (profile.phone) lines.push(`TEL;TYPE=CELL:${v(profile.phone)}`);
